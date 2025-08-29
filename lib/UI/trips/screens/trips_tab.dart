@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
+import 'package:yallago_admin_dashboard/UI/trips/widgets/trip_details_sheet.dart';
 import 'package:yallago_admin_dashboard/core/color_theme.dart';
 import 'package:yallago_admin_dashboard/core/payment_chip.dart';
 import 'package:yallago_admin_dashboard/core/pill_button.dart';
@@ -512,7 +513,7 @@ class TripRowVM {
   }
 
   // For details sheet we convert to a simple map-like Trip object
-  _TripLike toTripLike() => _TripLike(
+  TripLike toTripLike() => TripLike(
     id: tripId,
     status: status,
     customerUid: rider,
@@ -527,7 +528,7 @@ class TripRowVM {
 }
 
 // Minimal "Trip-like" model used by the details sheet (so this file is self-contained)
-class _TripLike {
+class TripLike {
   final String id;
   final String status;
   final String customerUid;
@@ -539,7 +540,7 @@ class _TripLike {
 
   final DateTime? requestedAt;
 
-  _TripLike({
+  TripLike({
     required this.id,
     required this.status,
     required this.customerUid,
@@ -551,99 +552,4 @@ class _TripLike {
 
     this.requestedAt,
   });
-}
-
-// =====================================================================================
-// Trip Details Sheet (simple cards; align with your styles)
-// =====================================================================================
-class TripDetailsSheet extends StatelessWidget {
-  final _TripLike trip;
-  const TripDetailsSheet({super.key, required this.trip});
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final dateFmt = DateFormat('yyyy-MM-dd HH:mm');
-
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Trip Details #${trip.id}',
-                    style: text.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                StatusChip(label: trip.status),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SurfaceCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _kv('Customer', trip.customerUid),
-                  _kv('Driver', trip.driverUid ?? '-'),
-                  _kv('Pickup', trip.pickupAddress),
-                  _kv('Destination', trip.destinationAddress),
-                  _kv('Fare', 'EGP ${trip.estimatedFare.toStringAsFixed(2)}'),
-                  _kv(
-                    'Requested At',
-                    trip.requestedAt == null
-                        ? '-'
-                        : dateFmt.format(trip.requestedAt!),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            SurfaceCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Payment Details',
-                          style: TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                      if (trip.paymentStatus != null)
-                        PaymentChip(label: trip.paymentStatus!),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  _kv('Payment Status', trip.paymentStatus ?? '-'),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _kv(String k, String v) => Padding(
-    padding: const EdgeInsets.only(bottom: 6),
-    child: Row(
-      children: [
-        SizedBox(
-          width: 150,
-          child: Text(
-            '$k:',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        ),
-        Expanded(child: Text(v)),
-      ],
-    ),
-  );
 }

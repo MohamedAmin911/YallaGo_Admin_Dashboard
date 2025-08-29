@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import '../../../models/trip.dart';
+import 'package:yallago_admin_dashboard/UI/trips/screens/trips_tab.dart';
+import 'package:yallago_admin_dashboard/core/color_theme.dart';
+import 'package:yallago_admin_dashboard/core/payment_chip.dart';
+import 'package:yallago_admin_dashboard/core/status_chip.dart';
+import 'package:yallago_admin_dashboard/core/surface_card.dart';
 
-/// Bottom sheet that shows a single trip details in a clean, modern layout.
-/// - No external deps (url_launcher optional; see comment)
-/// - Uses current Theme for colors (works with your Admin theme)
 class TripDetailsSheet extends StatelessWidget {
-  final Trip trip;
-
-  /// Optional action for future (refund/dispute).
+  final TripLike trip;
   final VoidCallback? onRefund;
+  final VoidCallback? onDispute;
 
-  const TripDetailsSheet({super.key, required this.trip, this.onRefund});
+  const TripDetailsSheet({
+    super.key,
+    required this.trip,
+    this.onRefund,
+    this.onDispute,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final dateFmt = DateFormat('yyyy-MM-dd HH:mm');
+    final fareStr = 'EGP ${trip.estimatedFare.toStringAsFixed(2)}';
+    final requested =
+        trip.requestedAt == null ? '—' : dateFmt.format(trip.requestedAt!);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -25,9 +33,8 @@ class TripDetailsSheet extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header row: title + status chip
+            // Header: title + status
             Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: Text(
@@ -37,101 +44,162 @@ class TripDetailsSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                _statusChip(trip.status, cs),
+                StatusChip(label: _prettyStatus(trip.status)),
               ],
             ),
-            const SizedBox(height: 16),
-
-            // Trip basic info
-            _SectionCard(
-              title: 'Trip Overview',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _kv('Customer', trip.customerUid),
-                  _kv('Driver', trip.driverUid ?? '-'),
-                  _kv('Pickup', trip.pickupAddress),
-                  _kv('Destination', trip.destinationAddress),
-                  _kv('Fare', 'EGP ${trip.estimatedFare.toStringAsFixed(2)}'),
-                  _kv(
-                    'Requested At',
-                    trip.requestedAt != null
-                        ? dateFmt.format(trip.requestedAt!)
-                        : '-',
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 12),
 
-            // Payment section
-            _SectionCard(
-              title: 'Payment Details',
-              trailing:
-                  trip.paymentStatus != null
-                      ? _paymentChip(trip.paymentStatus!, cs)
-                      : null,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _kv('Status', trip.paymentStatus ?? '-'),
-                  _kv('PaymentIntent', trip.paymentIntentId ?? '-'),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+            // Summary tags (now includes Trip ID, Customer ID, Driver ID copies)
+            Column(
+              spacing: 8,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (trip.paymentStatus != null)
+                  Row(
                     children: [
-                      // Optional: open in Stripe (uncomment if url_launcher added)
-                      // ElevatedButton.icon(
-                      //   onPressed: trip.paymentIntentId == null ? null : () async {
-                      //     final url = Uri.parse('https://dashboard.stripe.com/test/payments/${trip.paymentIntentId}');
-                      //     if (await canLaunchUrl(url)) await launchUrl(url, mode: LaunchMode.externalApplication);
-                      //   },
-                      //   icon: const Icon(Icons.open_in_new),
-                      //   label: const Text('Open in Stripe'),
-                      // ),
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          if (trip.paymentIntentId == null) return;
-                          // You can add Clipboard.setData here to copy the id.
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('PaymentIntent ID copied'),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.copy_all_rounded),
-                        label: const Text('Copy PaymentIntent ID'),
-                      ),
-                      if (onRefund != null)
-                        TextButton.icon(
-                          onPressed: onRefund,
-                          icon: const Icon(Icons.reply_rounded),
-                          label: const Text('Refund (coming soon)'),
-                        ),
+                      PaymentChip(label: _prettyPayment(trip.paymentStatus!)),
+                      const SizedBox(width: 8),
+                      _TagChip(icon: Icons.payments_rounded, label: fareStr),
                     ],
                   ),
-                ],
+
+                _TagChip(
+                  icon: Icons.confirmation_number_outlined,
+                  label: 'Trip: ${trip.id}',
+                  onCopy: () => _copy(context, trip.id),
+                ),
+                _TagChip(
+                  icon: Icons.person_outline,
+                  label: 'Customer: ${trip.customerUid}',
+                  onCopy: () => _copy(context, trip.customerUid),
+                ),
+                if (trip.driverUid != null &&
+                    trip.driverUid!.trim().isNotEmpty &&
+                    trip.driverUid! != '-')
+                  _TagChip(
+                    icon: Icons.local_taxi_outlined,
+                    label: 'Driver: ${trip.driverUid}',
+                    onCopy: () => _copy(context, trip.driverUid!),
+                  ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Info card (two blocks: addresses + meta)
+            SurfaceCard(
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final tight = c.maxWidth < 640;
+                  if (tight) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _InfoBlockAddresses(trip: trip),
+                        const Divider(height: 24),
+                        _InfoBlockMeta(fareStr: fareStr, requested: requested),
+                      ],
+                    );
+                  }
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _InfoBlockAddresses(trip: trip)),
+                      const VerticalDivider(width: 32),
+                      Expanded(
+                        child: _InfoBlockMeta(
+                          fareStr: fareStr,
+                          requested: requested,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
+
             const SizedBox(height: 12),
 
-            // Minimal timeline (requested -> completed)
-            _SectionCard(
-              title: 'Timeline',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // Compact timeline + payment (side-by-side on wide)
+            LayoutBuilder(
+              builder: (context, c) {
+                final tight = c.maxWidth < 640;
+                if (tight) {
+                  return Column(
+                    children: [
+                      SurfaceCard(
+                        child: _TimelineCompact(
+                          status: trip.status,
+                          requested: trip.requestedAt,
+                        ),
+                      ),
+                      // const SizedBox(height: 12),
+                      // SurfaceCard(child: _PaymentDetailsCard(trip: trip)),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(
+                      child: SurfaceCard(
+                        child: _TimelineCompact(
+                          status: trip.status,
+                          requested: trip.requestedAt,
+                        ),
+                      ),
+                    ),
+                    // const SizedBox(width: 12),
+                    // Expanded(
+                    //   child: SurfaceCard(
+                    //     child: _PaymentDetailsCard(trip: trip),
+                    //   ),
+                    // ),
+                  ],
+                );
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            // Actions
+            SurfaceCard(
+              child: Row(
                 children: [
-                  _bullet(
-                    'Requested',
-                    trip.requestedAt != null
-                        ? dateFmt.format(trip.requestedAt!)
-                        : '—',
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AdminColors.danger,
+                        side: const BorderSide(color: AdminColors.danger),
+                        minimumSize: const Size.fromHeight(44),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: onDispute ?? () {},
+                      child: const Text(
+                        'Dispute Trip',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
                   ),
-                  _bullet(
-                    'Completed',
-                    '—',
-                  ), // add completedAt to Trip model if available
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AdminColors.primary,
+                        foregroundColor: AdminColors.primaryText,
+                        minimumSize: const Size.fromHeight(44),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: onRefund ?? () {},
+                      child: const Text(
+                        'Refund Trip',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -141,117 +209,281 @@ class TripDetailsSheet extends StatelessWidget {
     );
   }
 
-  // Key–Value row
-  Widget _kv(String k, String v) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 150,
-            child: Text(
-              '$k:',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          Expanded(child: Text(v)),
-        ],
-      ),
-    );
+  // Pretty labels
+  static String _prettyStatus(String s) {
+    final l = s.toLowerCase();
+    if (l == 'in_progress') return 'Ongoing';
+    return l.isEmpty ? '-' : l[0].toUpperCase() + l.substring(1);
   }
 
-  // Bullet line for the timeline section
-  Widget _bullet(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+  static String _prettyPayment(String s) {
+    final l = s.toLowerCase();
+    if (l == 'succeeded') return 'Paid';
+    if (l == 'pending') return 'Pending';
+    return l.isEmpty ? '-' : l[0].toUpperCase() + l.substring(1);
+  }
+
+  static Future<void> _copy(BuildContext context, String v) async {
+    await Clipboard.setData(ClipboardData(text: v));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
+  }
+}
+
+// Address block
+class _InfoBlockAddresses extends StatelessWidget {
+  final TripLike trip;
+  const _InfoBlockAddresses({required this.trip});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = const TextStyle(
+      color: AdminColors.secondaryText,
+      fontWeight: FontWeight.w600,
+    );
+    final value = const TextStyle(fontWeight: FontWeight.w700);
+
+    Widget row(IconData icon, String k, String v) => Padding(
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 6),
-            child: Icon(Icons.circle, size: 8, color: Colors.black38),
-          ),
-          const SizedBox(width: 8),
+          Icon(icon, size: 20, color: AdminColors.secondaryText),
+          const SizedBox(width: 10),
           Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: const TextStyle(color: Colors.black87),
-                children: [
-                  TextSpan(
-                    text: '$label: ',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  TextSpan(text: value),
-                ],
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(k, style: label),
+                const SizedBox(height: 4),
+                Text(v, style: value),
+              ],
             ),
           ),
         ],
       ),
     );
-  }
 
-  // Status chip (trip)
-  Widget _statusChip(String s, ColorScheme cs) {
-    Color c = Colors.grey;
-    if (s == 'completed') c = Colors.green;
-    if (s == 'searching' || s == 'in_progress' || s == 'paid') c = Colors.blue;
-    if (s == 'canceled') c = Colors.red;
-    return Chip(
-      label: Text(s),
-      backgroundColor: c.withOpacity(0.14),
-      labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-    );
-  }
-
-  // Payment chip
-  static Widget _paymentChip(String s, ColorScheme cs) {
-    final c = s == 'succeeded' ? Colors.green : Colors.orange;
-    return Chip(
-      label: Text(s),
-      backgroundColor: c.withOpacity(0.14),
-      labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // row(Icons.person_outline, 'Customer ID', trip.customerUid),
+        // row(Icons.local_taxi_outlined, 'Driver ID', trip.driverUid ?? '—'),
+        row(Icons.my_location, 'Pickup', trip.pickupAddress),
+        row(Icons.location_on, 'Destination', trip.destinationAddress),
+      ],
     );
   }
 }
 
-/// Small reusable section card used across the bottom sheet.
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final Widget child;
-  final Widget? trailing;
+// Fare / Requested
+class _InfoBlockMeta extends StatelessWidget {
+  final String fareStr;
+  final String requested;
+  const _InfoBlockMeta({required this.fareStr, required this.requested});
 
-  const _SectionCard({required this.title, required this.child, this.trailing});
+  Widget _line(
+    String label,
+    String value, {
+    bool bold = false,
+    bool right = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: AdminColors.secondaryText,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: bold ? FontWeight.w800 : FontWeight.w700,
+            ),
+            textAlign: right ? TextAlign.right : TextAlign.left,
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final bg = Theme.of(context).colorScheme.surface;
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title + optional trailing (e.g., payment chip)
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _line('Total Fare:', fareStr, bold: true, right: true),
+        _line('Requested At:', requested, right: true),
+      ],
+    );
+  }
+}
+
+// Timeline
+class _TimelineCompact extends StatelessWidget {
+  final String status;
+  final DateTime? requested;
+  const _TimelineCompact({required this.status, required this.requested});
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = DateFormat('yyyy-MM-dd HH:mm');
+
+    Widget bullet(
+      String label,
+      String value, {
+      bool active = false,
+      bool last = false,
+    }) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color:
+                        active ? AdminColors.secondary : AdminColors.lightGray,
+                    shape: BoxShape.circle,
+                  ),
                 ),
+                if (!last)
+                  Container(
+                    width: 2,
+                    height: 22,
+                    color: AdminColors.lightGray.withOpacity(0.7),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    value,
+                    style: const TextStyle(color: AdminColors.secondaryText),
+                  ),
+                ],
               ),
-              if (trailing != null) trailing!,
-            ],
-          ),
-          const SizedBox(height: 10),
-          child,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final l = status.toLowerCase();
+    final ongoing = l == 'in_progress' || l == 'ongoing';
+    final completed = l == 'completed';
+
+    return Column(
+      children: [
+        bullet(
+          'Requested',
+          requested == null ? '—' : fmt.format(requested!),
+          active: true,
+        ),
+        bullet(
+          'Ongoing',
+          ongoing ? 'Driver en route / trip running' : '—',
+          active: ongoing,
+        ),
+        bullet(
+          'Completed',
+          completed ? 'Trip finished' : '—',
+          active: completed,
+          last: true,
+        ),
+      ],
+    );
+  }
+}
+
+// Payment card (status + PaymentIntent copy button if available)
+// class _PaymentDetailsCard extends StatelessWidget {
+//   final TripLike trip;
+//   const _PaymentDetailsCard({required this.trip});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         Row(
+//           children: [
+//             const Expanded(
+//               child: Text(
+//                 'Payment Details',
+//                 style: TextStyle(fontWeight: FontWeight.w800),
+//               ),
+//             ),
+//             if (trip.paymentStatus != null)
+//               PaymentChip(
+//                 label: TripDetailsSheet._prettyPayment(trip.paymentStatus!),
+//               ),
+//           ],
+//         ),
+//         // const SizedBox(height: 10),
+//         // kv(
+//         //   'Payment Status',
+//         //   trip.paymentStatus == null
+//         //       ? '—'
+//         //       : TripDetailsSheet._prettyPayment(trip.paymentStatus!),
+//         // ),
+//       ],
+//     );
+//   }
+// }
+
+// Summary tag chip with optional copy
+class _TagChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onCopy;
+
+  const _TagChip({required this.icon, required this.label, this.onCopy});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AdminColors.lightWhite,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AdminColors.lightGray),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AdminColors.secondaryText),
+          const SizedBox(width: 6),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+          if (onCopy != null) ...[
+            const SizedBox(width: 4),
+            InkWell(
+              customBorder: const CircleBorder(),
+              onTap: onCopy,
+              child: const Padding(
+                padding: EdgeInsets.all(2),
+                child: Icon(Icons.copy, size: 14),
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -10,14 +10,18 @@ class PaymentChip extends StatelessWidget {
         label.toLowerCase() == 'paid' || label.toLowerCase() == 'succeeded';
     final c = paid ? Colors.green : AdminColors.danger;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: c.withOpacity(0.3),
+        color: c,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         _labelCase(label),
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+          color: Colors.white,
+        ),
       ),
     );
   }
