@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:yallago_admin_dashboard/UI/trips/screens/trips_tab.dart';
 import 'package:yallago_admin_dashboard/core/color_theme.dart';
-import 'package:yallago_admin_dashboard/core/payment_chip.dart';
-import 'package:yallago_admin_dashboard/core/status_chip.dart';
-import 'package:yallago_admin_dashboard/core/surface_card.dart';
+import 'package:yallago_admin_dashboard/core/common%20widgets/payment_chip.dart';
+import 'package:yallago_admin_dashboard/core/common%20widgets/status_chip.dart';
+import 'package:yallago_admin_dashboard/core/common%20widgets/surface_card.dart';
 
 class TripDetailsSheet extends StatelessWidget {
   final TripLike trip;
@@ -33,7 +33,6 @@ class TripDetailsSheet extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header: title + status
             Row(
               children: [
                 Expanded(
@@ -49,7 +48,6 @@ class TripDetailsSheet extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // Summary tags (now includes Trip ID, Customer ID, Driver ID copies)
             Column(
               spacing: 8,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +84,6 @@ class TripDetailsSheet extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // Info card (two blocks: addresses + meta)
             SurfaceCard(
               child: LayoutBuilder(
                 builder: (context, c) {
@@ -120,7 +117,6 @@ class TripDetailsSheet extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            // Compact timeline + payment (side-by-side on wide)
             LayoutBuilder(
               builder: (context, c) {
                 final tight = c.maxWidth < 640;
@@ -133,8 +129,6 @@ class TripDetailsSheet extends StatelessWidget {
                           requested: trip.requestedAt,
                         ),
                       ),
-                      // const SizedBox(height: 12),
-                      // SurfaceCard(child: _PaymentDetailsCard(trip: trip)),
                     ],
                   );
                 }
@@ -148,12 +142,6 @@ class TripDetailsSheet extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // const SizedBox(width: 12),
-                    // Expanded(
-                    //   child: SurfaceCard(
-                    //     child: _PaymentDetailsCard(trip: trip),
-                    //   ),
-                    // ),
                   ],
                 );
               },
@@ -413,42 +401,6 @@ class _TimelineCompact extends StatelessWidget {
     );
   }
 }
-
-// Payment card (status + PaymentIntent copy button if available)
-// class _PaymentDetailsCard extends StatelessWidget {
-//   final TripLike trip;
-//   const _PaymentDetailsCard({required this.trip});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       crossAxisAlignment: CrossAxisAlignment.start,
-//       children: [
-//         Row(
-//           children: [
-//             const Expanded(
-//               child: Text(
-//                 'Payment Details',
-//                 style: TextStyle(fontWeight: FontWeight.w800),
-//               ),
-//             ),
-//             if (trip.paymentStatus != null)
-//               PaymentChip(
-//                 label: TripDetailsSheet._prettyPayment(trip.paymentStatus!),
-//               ),
-//           ],
-//         ),
-//         // const SizedBox(height: 10),
-//         // kv(
-//         //   'Payment Status',
-//         //   trip.paymentStatus == null
-//         //       ? '—'
-//         //       : TripDetailsSheet._prettyPayment(trip.paymentStatus!),
-//         // ),
-//       ],
-//     );
-//   }
-// }
 
 // Summary tag chip with optional copy
 class _TagChip extends StatelessWidget {
