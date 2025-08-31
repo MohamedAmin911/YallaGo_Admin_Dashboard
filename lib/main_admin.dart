@@ -5,8 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 // Your files
 import 'package:yallago_admin_dashboard/UI/admin_dashboard.dart';
 import 'package:yallago_admin_dashboard/core/color_theme.dart';
+import 'package:yallago_admin_dashboard/cubit/customer/customer_cubit.dart';
 import 'package:yallago_admin_dashboard/cubit/driver/driver_cubit.dart';
 import 'package:yallago_admin_dashboard/cubit/trip/trip_cubit.dart';
+import 'package:yallago_admin_dashboard/repo/customer_repo.dart';
 import 'package:yallago_admin_dashboard/repo/driver_repo.dart';
 import 'package:yallago_admin_dashboard/repo/trip_repo.dart';
 
@@ -44,6 +46,10 @@ class AdminApp extends StatelessWidget {
           create:
               (context) =>
                   DriversCubit(DriversRepository())..setTab('pending_approval'),
+        ),
+        BlocProvider<CustomerCubit>(
+          create:
+              (context) => CustomerCubit(CustomersRepository())..setTab('all'),
         ),
       ],
       child: MaterialApp(

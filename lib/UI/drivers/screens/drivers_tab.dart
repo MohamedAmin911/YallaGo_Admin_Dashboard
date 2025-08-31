@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:yallago_admin_dashboard/UI/trips/widgets/trips%20tab/trips_filter_row.dart';
-import 'package:yallago_admin_dashboard/UI/trips/widgets/trips%20tab/trips_data_grid.dart';
 
-class TripsTab extends StatefulWidget {
-  const TripsTab({super.key});
+import 'package:yallago_admin_dashboard/UI/drivers/widgets/drivers%20tab/drivers_filter_row.dart';
+import 'package:yallago_admin_dashboard/UI/drivers/widgets/drivers%20tab/drivers_data_grid.dart';
+
+class DriversTab extends StatefulWidget {
+  const DriversTab({super.key});
 
   @override
-  State<TripsTab> createState() => _TripsTabState();
+  State<DriversTab> createState() => _DriversTabState();
 }
 
-class _TripsTabState extends State<TripsTab> {
+class _DriversTabState extends State<DriversTab> {
   final _searchRightCtrl = TextEditingController();
 
   @override
@@ -25,14 +26,14 @@ class _TripsTabState extends State<TripsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TripsFilterRow(
+          DriversFilterRow(
             searchController: _searchRightCtrl,
             onSearchSubmitted: (q) {
-              // TODO: wire to Cubit (client-side filter or query param)
+              // TODO: wire to DriversCubit if you want server-side search
             },
           ),
           const SizedBox(height: 16),
-          const Expanded(child: TripsDataGrid()),
+          const Expanded(child: DriversDataGrid()),
         ],
       ),
     );

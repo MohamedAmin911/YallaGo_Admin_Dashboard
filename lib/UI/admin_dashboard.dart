@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:yallago_admin_dashboard/UI/driver/screens/drivers_tab.dart';
+import 'package:yallago_admin_dashboard/UI/customers/screens/customers_tab.dart';
+import 'package:yallago_admin_dashboard/UI/drivers/screens/drivers_tab.dart';
 import 'package:yallago_admin_dashboard/UI/trips/screens/trips_tab.dart';
 
 class AdminDashboard extends StatelessWidget {
@@ -10,7 +11,7 @@ class AdminDashboard extends StatelessWidget {
     final tabs = const [
       Tab(text: 'Trips'),
       Tab(text: 'Drivers'),
-      // Tab(text: 'Customers'),
+      Tab(text: 'Customers'),
       // Tab(text: 'Realtime Tracking'),
       // Tab(text: 'Support Chat'),
       // Tab(text: 'Payout Requests'),
@@ -20,13 +21,15 @@ class AdminDashboard extends StatelessWidget {
     return DefaultTabController(
       length: tabs.length,
       child: Scaffold(
-        appBar: AppBar(
-          title: Image.asset('assets/images/logo5.png', height: 40),
-        ),
-
         body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 30, top: 30),
+              child: Image.asset('assets/images/logo5.png', height: 40),
+            ),
             TabBar(
+              labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
               padding: EdgeInsets.only(top: 30),
               isScrollable: true,
               tabs: tabs,
@@ -39,7 +42,7 @@ class AdminDashboard extends StatelessWidget {
                 children: [
                   TripsTab(),
                   DriversTab(),
-                  // CustomersTab(),
+                  CustomersTab(),
                   // TrackingTab(),
                   // ChatTab(),
                   // PayoutsTab(),

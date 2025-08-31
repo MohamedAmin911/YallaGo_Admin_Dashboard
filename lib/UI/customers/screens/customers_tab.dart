@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:yallago_admin_dashboard/UI/trips/widgets/trips%20tab/trips_filter_row.dart';
-import 'package:yallago_admin_dashboard/UI/trips/widgets/trips%20tab/trips_data_grid.dart';
+import 'package:yallago_admin_dashboard/UI/customers/widgets/customers%20tab/customers_data_grid.dart';
+import 'package:yallago_admin_dashboard/UI/customers/widgets/customers%20tab/customers_filter_row.dart';
 
-class TripsTab extends StatefulWidget {
-  const TripsTab({super.key});
+class CustomersTab extends StatefulWidget {
+  const CustomersTab({super.key});
 
   @override
-  State<TripsTab> createState() => _TripsTabState();
+  State<CustomersTab> createState() => _CustomersTabState();
 }
 
-class _TripsTabState extends State<TripsTab> {
+class _CustomersTabState extends State<CustomersTab> {
   final _searchRightCtrl = TextEditingController();
 
   @override
@@ -25,14 +25,14 @@ class _TripsTabState extends State<TripsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TripsFilterRow(
+          CustomersFilterRow(
             searchController: _searchRightCtrl,
             onSearchSubmitted: (q) {
-              // TODO: wire to Cubit (client-side filter or query param)
+              // TODO: wire to CustomerCubit if you want server-side search
             },
           ),
           const SizedBox(height: 16),
-          const Expanded(child: TripsDataGrid()),
+          const Expanded(child: CustomersDataGrid()),
         ],
       ),
     );
