@@ -35,7 +35,6 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: 
   cloud_firestore: 
-  google_maps_flutter: 
   http: 
   flutter_bloc: 
   equatable: 
@@ -66,6 +65,8 @@ dependencies:
   webview_flutter:
   google_api_headers:  
   syncfusion_flutter_datagrid:
+  google_maps_flutter:
+  google_maps_flutter_web:
 
 dev_dependencies:
   flutter_test:

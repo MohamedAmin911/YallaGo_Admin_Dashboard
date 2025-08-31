@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yallago_admin_dashboard/UI/customers/screens/customers_tab.dart';
+import 'package:yallago_admin_dashboard/UI/driver%20tracking/screen/driver_tracking_tab.dart';
 import 'package:yallago_admin_dashboard/UI/drivers/screens/drivers_tab.dart';
 import 'package:yallago_admin_dashboard/UI/trips/screens/trips_tab.dart';
 
@@ -12,7 +13,7 @@ class AdminDashboard extends StatelessWidget {
       Tab(text: 'Trips'),
       Tab(text: 'Drivers'),
       Tab(text: 'Customers'),
-      // Tab(text: 'Realtime Tracking'),
+      Tab(text: 'Tracking'),
       // Tab(text: 'Support Chat'),
       // Tab(text: 'Payout Requests'),
       // Tab(text: 'Insights'),
@@ -43,7 +44,7 @@ class AdminDashboard extends StatelessWidget {
                   TripsTab(),
                   DriversTab(),
                   CustomersTab(),
-                  // TrackingTab(),
+                  DriversTrackingTab(),
                   // ChatTab(),
                   // PayoutsTab(),
                   // InsightsTab(),
