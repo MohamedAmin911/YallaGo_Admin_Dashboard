@@ -14,12 +14,17 @@ class DriversTrackingCubit extends Cubit<DriversTrackingState> {
     _sub?.cancel();
     emit(state.copyWith(loading: true, error: null));
 
-    // Use one of the repo calls:
-    // _sub = repo.listenRecentLocations(window: const Duration(minutes: 10)).listen(_onData, onError: _onError);
-    _sub = repo.listenAllWithLocation().listen(_onData, onError: _onError);
+    // Use the simple stream first (no orderBy)
+    _sub = repo.listenOnlineWithLocation().listen(_onData, onError: _onError);
+
+    // If you want to try the ordered one after creating index:
+    // _sub = repo.listenOnlineWithLocationOrdered().listen(_onData, onError: _onError);
   }
 
   void _onData(List<Driver> drivers) {
+    // Debug: confirm streaming
+    // print(drivers.map((d) => '${d.id}:${d.currentLocation?.latitude},${d.currentLocation?.longitude}').take(3).join(' | '));
+
     final filtered = _filter(drivers, state.query);
     emit(
       state.copyWith(
@@ -33,13 +38,9 @@ class DriversTrackingCubit extends Cubit<DriversTrackingState> {
 
   List<Driver> _filter(List<Driver> list, String q) {
     final query = q.trim().toLowerCase();
-
-    // Base: only online + has location
     Iterable<Driver> base = list.where(
       (d) => d.isOnline && d.currentLocation != null,
     );
-
-    // Apply search if present (by id or name)
     if (query.isNotEmpty) {
       base = base.where((d) {
         final name = (d.fullName).toLowerCase();
@@ -47,18 +48,17 @@ class DriversTrackingCubit extends Cubit<DriversTrackingState> {
         return name.contains(query) || id.contains(query);
       });
     }
-
     return base.toList();
   }
 
-  void _onError(Object e) =>
-      emit(state.copyWith(loading: false, error: e.toString()));
-
-  void setQuery(String q) {
-    final filtered = _filter(state.all, q);
-    emit(state.copyWith(query: q, visible: filtered));
+  void _onError(Object e) {
+    // Surface the error so you can see if it’s "FAILED_PRECONDITION: index required" etc.
+    // print('[drivers stream error] $e');
+    emit(state.copyWith(loading: false, error: e.toString()));
   }
 
+  void setQuery(String q) =>
+      emit(state.copyWith(query: q, visible: _filter(state.all, q)));
   void clearQuery() => setQuery('');
 
   @override

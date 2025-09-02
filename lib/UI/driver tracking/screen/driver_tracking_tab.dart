@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 import 'package:yallago_admin_dashboard/cubit/driver%20tracking/driver_tracking_cubit.dart';
 import 'package:yallago_admin_dashboard/cubit/driver%20tracking/driver_tracking_state.dart';
 import 'package:yallago_admin_dashboard/models/driver.dart';
@@ -19,18 +21,39 @@ class _DriversTrackingTabState extends State<DriversTrackingTab> {
   final _searchCtrl = TextEditingController();
   final _debouncer = _Debouncer(const Duration(milliseconds: 250));
   GoogleMapController? _mapCtrl;
-
-  // Default center (Port Said, Egypt). Will auto-fit to markers.
+  BitmapDescriptor _driverIcon = BitmapDescriptor.defaultMarker;
+  // Default center (Port Said, Egypt)
   static const LatLng _defaultCenter = LatLng(31.2653, 32.3019);
   static const CameraPosition _initialCamera = CameraPosition(
     target: _defaultCenter,
     zoom: 12,
   );
 
+  // Rendered markers and per-driver version to force refresh on web
+  Set<Marker> _renderMarkers = const {};
+  final Map<String, LatLng> _lastPos = {};
+  final Map<String, int> _version = {};
+
+  // Track last visible driver IDs to avoid over-animating camera
+  Set<String> _lastVisibleIds = {};
+
   @override
   void initState() {
     super.initState();
     context.read<DriversTrackingCubit>().start();
+    _loadIcons();
+  }
+
+  Future<void> _loadIcons() async {
+    try {
+      // Base icon
+      _driverIcon = await BitmapDescriptor.fromAssetImage(
+        const ImageConfiguration(size: Size(48, 48)),
+        'assets/images/locationpin.png',
+      );
+    } catch (e) {
+      debugPrint('Failed to load driver icon: $e');
+    }
   }
 
   @override
@@ -41,102 +64,149 @@ class _DriversTrackingTabState extends State<DriversTrackingTab> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<DriversTrackingCubit, DriversTrackingState>(
-      listenWhen: (prev, next) => prev.visible != next.visible,
-      listener: (context, state) async {
-        await _autoAdjustCamera(state.visible);
-      },
-      builder: (context, state) {
-        final markers = _buildMarkers(state.visible);
-        return Stack(
-          children: [
-            Positioned.fill(
-              top: 20,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: GoogleMap(
-                  mapType: MapType.normal,
-                  initialCameraPosition: _initialCamera,
-                  onMapCreated: (c) => _mapCtrl = c,
-                  myLocationEnabled: false,
-                  myLocationButtonEnabled: false,
-                  compassEnabled: true,
-                  zoomControlsEnabled: true,
-                  markers: markers,
-                ),
-              ),
-            ),
-
-            // Top search bar
-            Positioned(
-              top: 26,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  child: _SearchBar(
-                    controller: _searchCtrl,
-                    placeholder: 'Search driver by name or ID...',
-                    onChanged:
-                        (v) => _debouncer.run(() {
-                          context.read<DriversTrackingCubit>();
-                        }),
-                    onClear: () {
-                      _searchCtrl.clear();
-                      context.read<DriversTrackingCubit>();
-                    },
+    return MultiBlocListener(
+      listeners: [
+        // Always update markers via setState when state changes
+        BlocListener<DriversTrackingCubit, DriversTrackingState>(
+          listenWhen: (prev, next) => true,
+          listener: (context, state) {
+            _updateMarkers(state.visible);
+            _maybeAdjustCamera(state.visible);
+          },
+        ),
+      ],
+      child: BlocBuilder<DriversTrackingCubit, DriversTrackingState>(
+        builder: (context, state) {
+          return Stack(
+            children: [
+              Positioned.fill(
+                top: 20,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: GoogleMap(
+                    mapType: MapType.normal,
+                    initialCameraPosition: _initialCamera,
+                    onMapCreated: (c) => _mapCtrl = c,
+                    myLocationEnabled: false,
+                    myLocationButtonEnabled: false,
+                    compassEnabled: true,
+                    zoomControlsEnabled: true,
+                    // Use the locally rendered markers (updated via setState)
+                    markers: _renderMarkers,
                   ),
                 ),
               ),
-            ),
 
-            // Bottom-left info chip: counts and loading/error
-            Positioned(
-              left: 16,
-              bottom: 16,
-              child: _InfoPanel(
-                total: state.all.length,
-                visible: state.visible.length,
-                loading: state.loading,
-                error: state.error,
+              // Top search bar
+              Positioned(
+                top: 26,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: _SearchBar(
+                      controller: _searchCtrl,
+                      placeholder: 'Search driver by name or ID...',
+                      onChanged:
+                          (v) => _debouncer.run(() {
+                            // If you have filtering:
+                            // context.read<DriversTrackingCubit>().setQuery(v.trim());
+                          }),
+                      onClear: () {
+                        _searchCtrl.clear();
+                        // context.read<DriversTrackingCubit>().setQuery('');
+                      },
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
-        );
-      },
+
+              // Bottom-left info chip
+              Positioned(
+                left: 16,
+                bottom: 16,
+                child: _InfoPanel(
+                  total: state.all.length,
+                  visible: state.visible.length,
+                  loading: state.loading,
+                  error: state.error,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
-  final Map<String, Marker> _markerCache = {};
-
-  Set<Marker> _buildMarkers(List<Driver> drivers) {
+  // Build and apply markers with setState; force repaint on web
+  void _updateMarkers(List<Driver> drivers) {
     final seen = <String>{};
+    final next = <Marker>{};
+
     for (final d in drivers) {
       final gp = d.currentLocation;
       if (gp == null) continue;
       seen.add(d.id);
-      final pos = LatLng(gp.latitude, gp.longitude);
 
-      final existing = _markerCache[d.id];
-      if (existing == null || existing.position != pos) {
-        _markerCache[d.id] = Marker(
-          markerId: MarkerId(d.id),
+      final pos = LatLng(gp.latitude, gp.longitude);
+      final last = _lastPos[d.id];
+
+      final moved =
+          last == null ||
+          last.latitude != pos.latitude ||
+          last.longitude != pos.longitude;
+
+      if (kIsWeb && moved) {
+        _version[d.id] = (_version[d.id] ?? 0) + 1;
+      }
+      final ver = _version[d.id] ?? 0;
+
+      final markerId = kIsWeb ? MarkerId('${d.id}_$ver') : MarkerId(d.id);
+
+      next.add(
+        Marker(
+          markerId: markerId,
           position: pos,
           infoWindow: InfoWindow(
             title: d.fullName.isEmpty ? 'Unnamed driver' : d.fullName,
             snippet:
                 'ID: ${d.id}${d.licensePlate != null ? ' | Plate: ${d.licensePlate}' : ''}',
           ),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueAzure,
-          ),
-        );
-      }
+          icon: _driverIcon,
+        ),
+      );
+
+      _lastPos[d.id] = pos;
     }
-    // Remove markers for drivers no longer in the stream/filter
-    _markerCache.removeWhere((id, _) => !seen.contains(id));
-    return _markerCache.values.toSet();
+
+    // cleanup internal state
+    _lastPos.removeWhere((id, _) => !seen.contains(id));
+    _version.removeWhere((id, _) => !seen.contains(id));
+
+    if (kIsWeb) {
+      // Force full refresh: render empty set for one microtask, then new markers
+      setState(() => _renderMarkers = const {});
+      scheduleMicrotask(() {
+        if (!mounted) return;
+        setState(() => _renderMarkers = next);
+      });
+    } else {
+      setState(() => _renderMarkers = next);
+    }
+  }
+
+  void _maybeAdjustCamera(List<Driver> visible) {
+    final newIds = visible.map((d) => d.id).toSet();
+    final idsChanged =
+        newIds.length != _lastVisibleIds.length ||
+        !_lastVisibleIds.containsAll(newIds);
+
+    if (idsChanged) {
+      _lastVisibleIds = newIds;
+      _autoAdjustCamera(visible);
+    }
   }
 
   Future<void> _autoAdjustCamera(List<Driver> visible) async {
@@ -149,8 +219,6 @@ class _DriversTrackingTabState extends State<DriversTrackingTab> {
       );
       return;
     }
-
-    // If searching and only 1 driver is visible, zoom into them.
     if (visible.length == 1) {
       final gp = locs.first;
       await _mapCtrl!.animateCamera(
@@ -160,10 +228,7 @@ class _DriversTrackingTabState extends State<DriversTrackingTab> {
       );
       return;
     }
-
-    // Fit all visible markers
     final bounds = _boundsFromGeoPoints(locs);
-    // Add padding for a nicer look
     await _mapCtrl!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80));
   }
 
@@ -304,9 +369,7 @@ class _InfoPanel extends StatelessWidget {
 class _Debouncer {
   final Duration delay;
   Timer? _timer;
-
   _Debouncer(this.delay);
-
   void run(VoidCallback action) {
     _timer?.cancel();
     _timer = Timer(delay, action);
