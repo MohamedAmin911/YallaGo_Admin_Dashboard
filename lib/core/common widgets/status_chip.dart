@@ -11,7 +11,10 @@ class StatusChip extends StatelessWidget {
     if (label.toLowerCase() == 'completed') c = Colors.green;
     if (label.toLowerCase() == 'cancelled') c = AdminColors.danger;
     if (label.toLowerCase() == 'active') c = Colors.green;
+    if (label.toLowerCase() == 'paid') c = Colors.green;
     if (label.toLowerCase() == 'suspended') c = AdminColors.danger;
+    if (label.toLowerCase() == 'failed') c = AdminColors.danger;
+    if (label.toLowerCase() == 'pending') c = AdminColors.placeholder;
     if (label.toLowerCase() == 'ongoing' ||
         label.toLowerCase() == 'in progress') {
       c = Colors.black87;
