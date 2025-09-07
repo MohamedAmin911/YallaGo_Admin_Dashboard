@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
+import 'package:yallago_admin_dashboard/UI/payouts/screens/payout_details_screen.dart';
+
 import 'package:yallago_admin_dashboard/core/color_theme.dart';
 import 'package:yallago_admin_dashboard/core/common%20widgets/pill_button.dart';
 import 'package:yallago_admin_dashboard/core/common%20widgets/status_chip.dart';
@@ -41,6 +43,7 @@ class _PayoutsDataGridState extends State<PayoutsDataGrid> {
             _source = PayoutsGridSource(
               items: state.visible,
               adminUid: widget.adminUid,
+              onView: (req) => _openPayoutDetails(context, req),
             );
             _initialized = true;
           } else {
@@ -143,17 +146,33 @@ class _PayoutsDataGridState extends State<PayoutsDataGrid> {
       child: Text(text, style: style),
     );
   }
+
+  void _openPayoutDetails(BuildContext context, PayoutRequest req) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      builder:
+          (_) => BlocProvider.value(
+            value: context.read<PayoutsCubit>(),
+            child: PayoutReviewSheet(req: req, adminUid: widget.adminUid),
+          ),
+    );
+  }
 }
 
 class PayoutsGridSource extends DataGridSource {
   PayoutsGridSource({
     required List<PayoutRequest> items,
     required this.adminUid,
+    required this.onView,
   }) {
     _rows = _toRows(items);
   }
 
   final String adminUid;
+  final void Function(PayoutRequest req) onView;
+
   late List<DataGridRow> _rows;
 
   void update(List<PayoutRequest> items) {
@@ -208,9 +227,7 @@ class PayoutsGridSource extends DataGridSource {
         widgetCell(
           PillButton(
             label: 'View Details',
-            onPressed: () {
-              // TODO: Implement view details action
-            },
+            onPressed: () => onView(vm.original),
           ),
         ),
       ],
@@ -246,12 +263,9 @@ class PayoutRowVM {
   });
 
   factory PayoutRowVM.fromPayoutRequest(PayoutRequest payout) {
-    final amountStr = 'EGP ${(payout.amountCents / 100).toStringAsFixed(2)}';
-    final dateStr =
-        // ignore: unnecessary_null_comparison
-        payout.createdAt != null
-            ? payout.createdAt.toDate().toString().split(' ')[0]
-            : '-';
+    final curr = payout.currency.toUpperCase();
+    final amountStr = '$curr ${(payout.amountCents / 100).toStringAsFixed(2)}';
+    final dateStr = payout.createdAt.toDate().toString().split(' ').first;
 
     return PayoutRowVM(
       original: payout,

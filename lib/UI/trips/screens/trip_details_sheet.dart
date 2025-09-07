@@ -191,7 +191,7 @@ class TripDetailsSheet extends StatelessWidget {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AdminColors.primary,
-                        foregroundColor: AdminColors.primaryText,
+                        foregroundColor: AdminColors.bg,
                         minimumSize: const Size.fromHeight(44),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),

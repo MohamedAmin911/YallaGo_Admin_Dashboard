@@ -43,6 +43,7 @@ class ProfileInfo extends StatelessWidget {
         _kv('Phone', driver.phone ?? '—'),
         _kv('Email', driver.email ?? '—'),
         _kv('Balance', balance),
+        _kv('Total Rides', driver.totalRides.toString()),
         _kv('Rating', driver.rating.toString()),
         _kv('Stripe Account', driver.stripeAccountId ?? '—', bold: false),
       ],

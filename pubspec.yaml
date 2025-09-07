@@ -67,6 +67,8 @@ dependencies:
   syncfusion_flutter_datagrid:
   google_maps_flutter:
   google_maps_flutter_web:
+  url_launcher:
+  custom_sliding_segmented_control:
 
 dev_dependencies:
   flutter_test:

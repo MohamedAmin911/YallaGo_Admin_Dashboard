@@ -11,7 +11,7 @@ class StatusPill extends StatelessWidget {
     final l = status.toLowerCase();
     Color c = Colors.grey;
     if (l == 'pending_approval') c = Colors.orange;
-    if (l == 'active') c = Colors.green;
+    if (l == 'active' || l == 'paid') c = Colors.green;
     if (l == 'suspended') c = AdminColors.danger;
     if (l == 'rejected') c = Colors.redAccent;
 
