@@ -8,7 +8,8 @@ class StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Color c = AdminColors.primary;
-    if (label.toLowerCase() == 'completed') c = Colors.green;
+    if (label.toLowerCase() == 'completed' || label.toLowerCase() == 'approved')
+      c = Colors.green;
     if (label.toLowerCase() == 'cancelled') c = AdminColors.danger;
     if (label.toLowerCase() == 'active') c = Colors.green;
     if (label.toLowerCase() == 'paid') c = Colors.green;

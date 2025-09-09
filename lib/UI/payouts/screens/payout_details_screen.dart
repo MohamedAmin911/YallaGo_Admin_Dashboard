@@ -3,11 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yallago_admin_dashboard/core/color_theme.dart';
-
 import 'package:yallago_admin_dashboard/cubit/payouts/payouts_cubit.dart';
 import 'package:yallago_admin_dashboard/models/payout_request.dart';
-
-// Reuse your existing UI atoms used in DriverReviewSheet
 import 'package:yallago_admin_dashboard/UI/drivers/widgets/driver%20details%20sheet/section_card.dart';
 import 'package:yallago_admin_dashboard/UI/drivers/widgets/driver%20details%20sheet/status_pill.dart';
 import 'package:yallago_admin_dashboard/UI/drivers/widgets/driver%20details%20sheet/utils.dart';
@@ -15,7 +12,7 @@ import 'package:yallago_admin_dashboard/UI/trips/widgets/trip%20details%20sheet/
 
 class PayoutReviewSheet extends StatefulWidget {
   final PayoutRequest req;
-  final String adminUid; // required to call approve/reject
+  final String adminUid;
 
   const PayoutReviewSheet({
     super.key,
@@ -46,11 +43,9 @@ class _PayoutReviewSheetState extends State<PayoutReviewSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header: icon/avatar + title + status + ID chips
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Visual placeholder (like driver avatar area)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(30),
                       child: Container(
@@ -69,7 +64,6 @@ class _PayoutReviewSheetState extends State<PayoutReviewSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Title: Driver name + amount
                           Text(
                             '${p.driverName.isNotEmpty == true ? p.driverName : "Driver"} • $amount $currency',
                             style: const TextStyle(
@@ -83,7 +77,6 @@ class _PayoutReviewSheetState extends State<PayoutReviewSheet> {
                             children: [
                               StatusPill(status: p.status),
                               const SizedBox(height: 8),
-                              // Copyable chips
                               TagChip(
                                 icon: Icons.payment_outlined,
                                 label: 'Payout: ${p.id}',
@@ -131,7 +124,6 @@ class _PayoutReviewSheetState extends State<PayoutReviewSheet> {
 
                 const SizedBox(height: 16),
 
-                // Two-column responsive content like DriverReviewSheet
                 LayoutBuilder(
                   builder: (context, c) {
                     final tight = c.maxWidth < 700;
@@ -170,7 +162,6 @@ class _PayoutReviewSheetState extends State<PayoutReviewSheet> {
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Left column
                         Expanded(
                           child: Column(
                             children: [
@@ -187,7 +178,6 @@ class _PayoutReviewSheetState extends State<PayoutReviewSheet> {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        // Right column
                         Expanded(
                           child: Column(
                             children: [
@@ -275,8 +265,6 @@ class _PayoutReviewSheetState extends State<PayoutReviewSheet> {
   }
 }
 
-// ===== Blocks used inside SectionCard(s) =====
-
 class _PayoutInfo extends StatelessWidget {
   const _PayoutInfo({required this.p});
   final PayoutRequest p;
@@ -345,7 +333,6 @@ class _StripeInfo extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        // Optional quick links to Stripe (test mode)
         Row(
           children: [
             if ((p.transferId ?? '').isNotEmpty)
@@ -392,18 +379,26 @@ class _ActionsRow extends StatelessWidget {
     return Row(
       children: [
         ElevatedButton.icon(
+          style: TextButton.styleFrom(
+            backgroundColor:
+                isPending && !busy ? Colors.green : AdminColors.lightGray,
+          ),
           onPressed: isPending && !busy ? onApprove : null,
-          icon: const Icon(Icons.check_circle_outline),
-          label: const Text('Approve & Pay'),
+          icon: const Icon(Icons.check_circle_outline, color: AdminColors.bg),
+          label: const Text(
+            'Approve & Pay',
+            style: TextStyle(color: AdminColors.bg),
+          ),
         ),
         const SizedBox(width: 12),
         TextButton.icon(
-          onPressed: isPending && !busy ? onReject : null,
-          icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent),
-          label: const Text(
-            'Reject',
-            style: TextStyle(color: Colors.redAccent),
+          style: TextButton.styleFrom(
+            backgroundColor:
+                isPending && !busy ? AdminColors.danger : AdminColors.lightGray,
           ),
+          onPressed: isPending && !busy ? onReject : null,
+          icon: const Icon(Icons.cancel_outlined, color: AdminColors.bg),
+          label: const Text('Reject', style: TextStyle(color: AdminColors.bg)),
         ),
         if (busy) ...[
           const SizedBox(width: 12),
@@ -417,8 +412,6 @@ class _ActionsRow extends StatelessWidget {
     );
   }
 }
-
-// ===== Small helpers =====
 
 class _InfoTable extends StatelessWidget {
   final List<_InfoRow> rows;

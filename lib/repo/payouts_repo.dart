@@ -7,6 +7,7 @@ import 'package:yallago_admin_dashboard/models/payout_request.dart';
 class PayoutsRepository {
   final FirebaseFirestore _db;
   final String base;
+
   PayoutsRepository({FirebaseFirestore? db, required this.base})
     : _db = db ?? FirebaseFirestore.instance;
 
@@ -24,27 +25,102 @@ class PayoutsRepository {
         .map((s) => s.docs.map(PayoutRequest.fromDoc).toList());
   }
 
+  Future<void> _emailPayoutNotification({
+    required String driverUid,
+    required String payoutId,
+    required int amountCents,
+    required String currency, // 'usd'
+    required String status, // 'approved' or 'paid'
+    String? transferId,
+  }) async {
+    // Fetch driver email
+    final driverDoc = await _db.collection('drivers').doc(driverUid).get();
+    final toEmail = driverDoc.data()?['email'] as String?;
+    final driverName = (driverDoc.data()?['fullName'] as String?) ?? 'Driver';
+    if (toEmail == null || toEmail.isEmpty) return;
+
+    final amountText = (amountCents / 100).toStringAsFixed(2);
+    final subj =
+        status == 'paid'
+            ? 'Payout ${currency.toUpperCase()} $amountText sent'
+            : 'Payout ${currency.toUpperCase()} $amountText approved';
+
+    final bodyHtml = '''
+<div style="font-family: Arial, sans-serif; color:#111;">
+  <h2 style="margin:0 0 12px;">${status == 'paid' ? 'Payout sent' : 'Payout approved'}</h2>
+  <p>Hello $driverName,</p>
+  <p>Your payout of <b>EGP $amountText</b> has been $status.</p>
+  <p style="margin-top:16px;">Thanks,<br/>Your Team</p>
+</div>
+''';
+
+    final resp = await http.post(
+      Uri.parse('$base/notify_payout_email'),
+      headers: _headers,
+      body: json.encode({
+        'to': toEmail,
+        'subject': subj,
+        'html': bodyHtml,
+        'data': {
+          'type': 'payout',
+          'payoutId': payoutId,
+          'status': status,
+          'amountCents': '$amountCents',
+          'currency': currency.toUpperCase(),
+          'driverName': driverName,
+          if (transferId != null) 'transferId': transferId,
+        },
+      }),
+    );
+
+    // Check response; do not fail the payout if email fails (log-only pattern)
+    if (resp.statusCode < 200 || resp.statusCode >= 300) {
+      // You can log resp.body somewhere if needed
+      return;
+    }
+    final Map<String, dynamic> res =
+        json.decode(resp.body) as Map<String, dynamic>;
+    if (res['ok'] != true) {
+      // Optional log: res['error']
+      return;
+    }
+  }
+
   Future<void> approvePayout({
     required PayoutRequest req,
     required String adminUid,
     bool alsoCreateBankPayout = true,
   }) async {
     final ref = _db.collection('payouts').doc(req.id);
-    // 1) Transfer (and payout) via your Pipedream route (two-step or combined)
-    final r = await http.post(
+
+    // 1) Execute transfer (and payout) via Pipedream
+    final resp = await http.post(
       Uri.parse(
         '$base/payout_execute',
-      ), // or payout_execute_smart if you added it
+      ), // or /payout_execute_smart if you prefer
       headers: _headers,
       body: json.encode({
         'accountId': req.driverStripeAccountId,
         'amountCents': req.amountCents,
         'currency': 'usd',
-        'idempotencyKey': req.id,
+        'idempotencyKey': req.id, // payout doc id for idempotency
         'createPayout': alsoCreateBankPayout,
       }),
     );
-    final data = json.decode(r.body) as Map<String, dynamic>;
+
+    if (resp.statusCode < 200 || resp.statusCode >= 300) {
+      await ref.update({
+        'status': 'failed',
+        'approvedBy': adminUid,
+        'approvedAt': FieldValue.serverTimestamp(),
+        'failureReason':
+            'HTTP ${resp.statusCode}: ${resp.body.isNotEmpty ? resp.body : 'payout_execute error'}',
+      });
+      throw Exception('payout_execute failed: HTTP ${resp.statusCode}');
+    }
+
+    final Map<String, dynamic> data =
+        json.decode(resp.body) as Map<String, dynamic>;
     if (data['ok'] != true) {
       await ref.update({
         'status': 'failed',
@@ -58,14 +134,26 @@ class PayoutsRepository {
     final transferId = (data['transfer'] ?? {})['id'] as String?;
     final payoutId = (data['payout'] ?? {})['id'] as String?;
 
+    // 2) Update Firestore with final status
+    final newStatus = payoutId != null ? 'paid' : 'approved';
     await ref.update({
-      'status': payoutId != null ? 'paid' : 'approved',
+      'status': newStatus,
       'approvedBy': adminUid,
       'approvedAt': FieldValue.serverTimestamp(),
       'processedAt': FieldValue.serverTimestamp(),
       'transferId': transferId,
       'payoutId': payoutId,
     });
+
+    // 3) Send email notification (do not fail the main flow if this errors)
+    await _emailPayoutNotification(
+      driverUid: req.driverUid,
+      payoutId: req.id,
+      amountCents: req.amountCents,
+      currency: 'usd',
+      status: newStatus,
+      transferId: transferId,
+    );
   }
 
   Future<void> rejectPayout({
@@ -74,13 +162,14 @@ class PayoutsRepository {
     String? reason,
   }) async {
     final ref = _db.collection('payouts').doc(payoutId);
+
     await _db.runTransaction((tx) async {
       final snap = await tx.get(ref);
       if (!snap.exists) throw Exception('Payout not found');
       final d = snap.data() as Map<String, dynamic>;
-      if (d['status'] != 'pending') throw Exception('Not pending');
+      if ((d['status'] ?? '') != 'pending') throw Exception('Not pending');
 
-      // refund balance
+      // Refund driver balance
       final driverUid = d['driverUid'] as String;
       final amountCents = d['amountCents'] as int;
       final driverRef = _db.collection('drivers').doc(driverUid);
@@ -88,6 +177,7 @@ class PayoutsRepository {
       final balance = ((dsnap.data()?['balance'] ?? 0.0) as num).toDouble();
       tx.update(driverRef, {'balance': balance + amountCents / 100.0});
 
+      // Update payout status
       tx.update(ref, {
         'status': 'rejected',
         'approvedBy': adminUid,
