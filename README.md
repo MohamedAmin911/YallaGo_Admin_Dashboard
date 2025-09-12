@@ -79,6 +79,6 @@ npm start
 👤 Author
 Mohamed Amin
 
-LinkedIn: linkedin.com/in/mohamed-amin-002849189/
+LinkedIn: [linkedin.com/in/mohamed-amin-002849189/](url)
 
 Email: mohamed.amin911911@gmail.com
