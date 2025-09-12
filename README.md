@@ -53,7 +53,7 @@ To set up and run this project locally, you will need to:
 Clone the repository:
 
 ```
-git clone <your-repo-url>
+git clone <https://gitlab.com/mohamed-amin-dev/YallaGo_Admin_Dashboard>
 cd YallaGo-Admin-Dashboard
 ```
 
