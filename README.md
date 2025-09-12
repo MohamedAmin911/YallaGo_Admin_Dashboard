@@ -24,21 +24,18 @@ Live Map: View the real-time GPS location of all online drivers moving on a live
 
 Trip Monitoring: See a live feed of all ongoing trips.
 
-[ ] (Add any other real-time features you've built here, e.g., "View active trip routes")
 
 📊 Data Management
 Customer List: View and search through a complete list of all registered customers.
 
 Trip History: View and filter a complete history of all trips taken on the platform.
 
-[ ] (Add any other data features you've built here, e.g., "View customer/driver ratings")
 
 💰 Payouts & Finance (In Progress)
 Driver Balances: View the current earnings balance for each driver.
 
-Payout Management: The dashboard is designed to be the central place for initiating and tracking driver payouts.
+Payout Management: The dashboard is designed to be the central place for initiating, approving and tracking driver payouts.
 
-[ ] (Add any other finance features you've built here)
 
 🛠️ Tech Stack & Architecture
 This dashboard was built as a full-stack web application.
@@ -49,7 +46,6 @@ Backend & Database: Firebase (Firestore for real-time data, Firebase Auth for ad
 
 Mapping: Google Maps Platform (JavaScript SDK).
 
-[ ] (Add any other technologies you used, e.g., "UI Library: Material-UI")
 
 🚀 How to Run
 To set up and run this project locally, you will need to:
