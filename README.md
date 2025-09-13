@@ -1,4 +1,8 @@
 YallaGo - Admin Dashboard
+
+![1](assets/images/logo5.png)
+
+
 This is the central command and control center for the YallaGo ride-hailing platform. This web-based admin dashboard is a full-stack application designed for platform owners to manage drivers, monitor trips, and ensure the safety and efficiency of the entire ecosystem. It interacts in real-time with the same Firebase backend as the customer and driver mobile apps.
 
 ✨ Features
@@ -71,6 +75,18 @@ npm install
 npm start
 ```
 
+---
+
+## ⚖️ License & Usage
+
+This project is licensed under a custom portfolio license. Please see the `LICENSE.md` file for full details.
+
+-   **You ARE allowed to:** View, download, and run the code for personal, educational, and evaluation purposes.
+-   **You are NOT allowed to:** Use this code for any commercial purpose, distribute it, or sell it.
+
+This repository is intended to be a showcase of my skills and should be treated as such.
+
+---
 
 👤 Author
 Mohamed Amin
