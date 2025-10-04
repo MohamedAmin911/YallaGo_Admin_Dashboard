@@ -6,7 +6,7 @@ class Customer {
 
   final String fullName;
   final String? email;
-  final String? phone; // maps from 'phoneNumber'
+  final String? phone;
   final String? profileImageUrl;
   final String? fcmToken;
   final String? homeAddress;
@@ -87,7 +87,6 @@ class Customer {
       'searchHistory': searchHistory.map((e) => e.toMap()).toList(),
     };
 
-    // Remove nulls to avoid overwriting fields with null in Firestore
     map.removeWhere((_, v) => v == null);
     return map;
   }

@@ -13,7 +13,6 @@ class PayoutsCubit extends Cubit<PayoutsState> {
   void start() {
     _sub?.cancel();
     emit(state.copyWith(loading: true, error: null));
-    // Stream ALL payouts, not only pending
     _sub = repo.listenAll().listen(_onData, onError: _onError);
   }
 
@@ -78,7 +77,6 @@ class PayoutsCubit extends Cubit<PayoutsState> {
         adminUid: adminUid,
         alsoCreateBankPayout: createBankPayout,
       );
-      // stream will refresh
       emit(state.copyWith(loading: false));
     } catch (e) {
       emit(state.copyWith(loading: false, error: e.toString()));
@@ -97,7 +95,6 @@ class PayoutsCubit extends Cubit<PayoutsState> {
         adminUid: adminUid,
         reason: reason,
       );
-      // stream will refresh
       emit(state.copyWith(loading: false));
     } catch (e) {
       emit(state.copyWith(loading: false, error: e.toString()));

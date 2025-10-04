@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:yallago_admin_dashboard/models/customer.dart';
 
 class CustomerState extends Equatable {
-  final String tab; // e.g. 'all'
+  final String tab;
   final List<Customer> items;
   final bool loading;
   final String? error;

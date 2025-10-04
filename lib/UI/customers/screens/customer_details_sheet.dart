@@ -96,7 +96,6 @@ class CustomerDetailsSheet extends StatelessWidget {
 
                 const SizedBox(height: 16),
 
-                // Two-column responsive content
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final tight = constraints.maxWidth < 700;

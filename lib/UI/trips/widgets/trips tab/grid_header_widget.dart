@@ -17,7 +17,6 @@ Widget buildGridHeader(
   );
 }
 
-// Column width constants
 const double kWTripId = 210;
 const double kWStatus = 120;
 const double kWRider = 160;

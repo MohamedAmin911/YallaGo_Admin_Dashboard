@@ -42,7 +42,6 @@ class StatusChip extends StatelessWidget {
 String _labelCase(String s) {
   if (s.isEmpty) return s;
   final lower = s.toLowerCase();
-  // Title case with known labels
   switch (lower) {
     case 'in_progress':
       return 'Ongoing';

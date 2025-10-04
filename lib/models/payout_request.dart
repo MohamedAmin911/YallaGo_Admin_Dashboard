@@ -7,16 +7,16 @@ class PayoutRequest {
   final String driverStripeAccountId;
   final int amountCents;
   final String currency;
-  final String status; // pending | approved | rejected | paid | failed
+  final String status;
   final Timestamp createdAt;
   final Timestamp? approvedAt;
   final String? approvedBy;
   final Timestamp? processedAt;
   final String? failureReason;
-  final String? transferId; // stripe transfer id
-  final String? payoutId; // stripe payout id (on connected account)
-  final int? balanceSnapshotCents; // ledger at request time
-  final int? feeCents; // if you collect platform fee on payout
+  final String? transferId;
+  final String? payoutId;
+  final int? balanceSnapshotCents;
+  final int? feeCents;
   final String? note;
 
   PayoutRequest({

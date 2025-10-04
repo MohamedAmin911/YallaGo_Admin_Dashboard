@@ -5,9 +5,9 @@ class DriversTrackingState extends Equatable {
   final bool loading;
   final String? error;
 
-  final List<Driver> all; // all streamed drivers (online + active)
-  final List<Driver> visible; // filtered by query
-  final String query; // search text
+  final List<Driver> all;
+  final List<Driver> visible;
+  final String query;
 
   const DriversTrackingState({
     required this.loading,

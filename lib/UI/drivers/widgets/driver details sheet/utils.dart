@@ -13,7 +13,6 @@ class DriverReviewUtils {
     ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
   }
 
-  // Open a URL in the external browser (mobile) or new tab (web).
   static Future<void> openUrl(
     String url, {
     BuildContext? context,

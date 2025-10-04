@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import '../../models/driver.dart';
 
 class DriversState extends Equatable {
-  final String tab; // 'pending_approval' | 'active' | 'suspended'
+  final String tab;
   final List<Driver> items;
   final bool loading;
   final String? error;

@@ -29,11 +29,10 @@ class PayoutsRepository {
     required String driverUid,
     required String payoutId,
     required int amountCents,
-    required String currency, // 'usd'
-    required String status, // 'approved' or 'paid'
+    required String currency,
+    required String status,
     String? transferId,
   }) async {
-    // Fetch driver email
     final driverDoc = await _db.collection('drivers').doc(driverUid).get();
     final toEmail = driverDoc.data()?['email'] as String?;
     final driverName = (driverDoc.data()?['fullName'] as String?) ?? 'Driver';
@@ -73,15 +72,12 @@ class PayoutsRepository {
       }),
     );
 
-    // Check response; do not fail the payout if email fails (log-only pattern)
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
-      // You can log resp.body somewhere if needed
       return;
     }
     final Map<String, dynamic> res =
         json.decode(resp.body) as Map<String, dynamic>;
     if (res['ok'] != true) {
-      // Optional log: res['error']
       return;
     }
   }
@@ -93,17 +89,14 @@ class PayoutsRepository {
   }) async {
     final ref = _db.collection('payouts').doc(req.id);
 
-    // 1) Execute transfer (and payout) via Pipedream
     final resp = await http.post(
-      Uri.parse(
-        '$base/payout_execute',
-      ), // or /payout_execute_smart if you prefer
+      Uri.parse('$base/payout_execute'),
       headers: _headers,
       body: json.encode({
         'accountId': req.driverStripeAccountId,
         'amountCents': req.amountCents,
         'currency': 'usd',
-        'idempotencyKey': req.id, // payout doc id for idempotency
+        'idempotencyKey': req.id,
         'createPayout': alsoCreateBankPayout,
       }),
     );
@@ -134,7 +127,6 @@ class PayoutsRepository {
     final transferId = (data['transfer'] ?? {})['id'] as String?;
     final payoutId = (data['payout'] ?? {})['id'] as String?;
 
-    // 2) Update Firestore with final status
     final newStatus = payoutId != null ? 'paid' : 'approved';
     await ref.update({
       'status': newStatus,
@@ -145,7 +137,6 @@ class PayoutsRepository {
       'payoutId': payoutId,
     });
 
-    // 3) Send email notification (do not fail the main flow if this errors)
     await _emailPayoutNotification(
       driverUid: req.driverUid,
       payoutId: req.id,
@@ -169,7 +160,6 @@ class PayoutsRepository {
       final d = snap.data() as Map<String, dynamic>;
       if ((d['status'] ?? '') != 'pending') throw Exception('Not pending');
 
-      // Refund driver balance
       final driverUid = d['driverUid'] as String;
       final amountCents = d['amountCents'] as int;
       final driverRef = _db.collection('drivers').doc(driverUid);
@@ -177,7 +167,6 @@ class PayoutsRepository {
       final balance = ((dsnap.data()?['balance'] ?? 0.0) as num).toDouble();
       tx.update(driverRef, {'balance': balance + amountCents / 100.0});
 
-      // Update payout status
       tx.update(ref, {
         'status': 'rejected',
         'approvedBy': adminUid,

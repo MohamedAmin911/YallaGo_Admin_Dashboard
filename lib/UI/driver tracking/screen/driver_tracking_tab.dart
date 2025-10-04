@@ -22,19 +22,16 @@ class _DriversTrackingTabState extends State<DriversTrackingTab> {
   final _debouncer = _Debouncer(const Duration(milliseconds: 250));
   GoogleMapController? _mapCtrl;
   BitmapDescriptor _driverIcon = BitmapDescriptor.defaultMarker;
-  // Default center (Port Said, Egypt)
   static const LatLng _defaultCenter = LatLng(31.2653, 32.3019);
   static const CameraPosition _initialCamera = CameraPosition(
     target: _defaultCenter,
     zoom: 12,
   );
 
-  // Rendered markers and per-driver version to force refresh on web
   Set<Marker> _renderMarkers = const {};
   final Map<String, LatLng> _lastPos = {};
   final Map<String, int> _version = {};
 
-  // Track last visible driver IDs to avoid over-animating camera
   Set<String> _lastVisibleIds = {};
 
   @override
@@ -66,7 +63,6 @@ class _DriversTrackingTabState extends State<DriversTrackingTab> {
   Widget build(BuildContext context) {
     return MultiBlocListener(
       listeners: [
-        // Always update markers via setState when state changes
         BlocListener<DriversTrackingCubit, DriversTrackingState>(
           listenWhen: (prev, next) => true,
           listener: (context, state) {
@@ -91,7 +87,6 @@ class _DriversTrackingTabState extends State<DriversTrackingTab> {
                     myLocationButtonEnabled: false,
                     compassEnabled: true,
                     zoomControlsEnabled: true,
-                    // Use the locally rendered markers (updated via setState)
                     markers: _renderMarkers,
                   ),
                 ),
@@ -108,21 +103,15 @@ class _DriversTrackingTabState extends State<DriversTrackingTab> {
                     child: _SearchBar(
                       controller: _searchCtrl,
                       placeholder: 'Search driver by name or ID...',
-                      onChanged:
-                          (v) => _debouncer.run(() {
-                            // If you have filtering:
-                            // context.read<DriversTrackingCubit>().setQuery(v.trim());
-                          }),
+                      onChanged: (v) => _debouncer.run(() {}),
                       onClear: () {
                         _searchCtrl.clear();
-                        // context.read<DriversTrackingCubit>().setQuery('');
                       },
                     ),
                   ),
                 ),
               ),
 
-              // Bottom-left info chip
               Positioned(
                 left: 16,
                 bottom: 16,
@@ -140,7 +129,6 @@ class _DriversTrackingTabState extends State<DriversTrackingTab> {
     );
   }
 
-  // Build and apply markers with setState; force repaint on web
   void _updateMarkers(List<Driver> drivers) {
     final seen = <String>{};
     final next = <Marker>{};
@@ -181,12 +169,10 @@ class _DriversTrackingTabState extends State<DriversTrackingTab> {
       _lastPos[d.id] = pos;
     }
 
-    // cleanup internal state
     _lastPos.removeWhere((id, _) => !seen.contains(id));
     _version.removeWhere((id, _) => !seen.contains(id));
 
     if (kIsWeb) {
-      // Force full refresh: render empty set for one microtask, then new markers
       setState(() => _renderMarkers = const {});
       scheduleMicrotask(() {
         if (!mounted) return;

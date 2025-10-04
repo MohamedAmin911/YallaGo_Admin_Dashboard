@@ -6,17 +6,16 @@ class Driver {
 
   final String fullName;
   final String? email;
-  final String? phone; // maps from 'phoneNumber'
+  final String? phone;
   final String status;
   final double balance;
 
-  final String? stripeAccountId; // maps from 'stripeConnectAccountId'
+  final String? stripeAccountId;
   final String? nationalIdUrl;
   final String? driversLicenseUrl;
   final String? carLicenseUrl;
   final String? criminalRecordUrl;
 
-  // Added fields
   final String? carColor;
   final String? carImageUrl;
   final String? carModel;
@@ -115,7 +114,6 @@ class Driver {
       'totalRides': totalRides,
     };
 
-    // Remove nulls to avoid overwriting fields with null in Firestore
     map.removeWhere((_, v) => v == null);
     return map;
   }

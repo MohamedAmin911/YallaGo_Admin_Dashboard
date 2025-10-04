@@ -26,8 +26,8 @@ class PayoutsState extends Equatable {
   final bool loading;
   final String? error;
 
-  final List<PayoutRequest> all; // All from Firestore
-  final List<PayoutRequest> visible; // Filtered by UI
+  final List<PayoutRequest> all;
+  final List<PayoutRequest> visible;
   final PayoutFilter filter;
   final String query;
 

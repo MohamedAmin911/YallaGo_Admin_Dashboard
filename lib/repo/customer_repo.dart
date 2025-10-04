@@ -5,8 +5,6 @@ class CustomersRepository {
   final _db = FirebaseFirestore.instance;
 
   Stream<List<Customer>> listen(String tab) {
-    // Customers don’t have a status. We keep the same API and
-    // let 'tab' be a UI scope (e.g., 'all'). Adjust if you add filters.
     Query<Map<String, dynamic>> q = _db
         .collection('customers')
         .orderBy('createdAt', descending: true);

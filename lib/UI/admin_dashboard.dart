@@ -46,7 +46,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
             child: Image.asset('assets/images/logo5.png', height: 40),
           ),
           SizedBox(height: 40),
-          // Segmented control
           Center(
             child: CustomSlidingSegmentedControl<int>(
               initialValue: _index,
@@ -108,7 +107,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // Builds a segment label that reacts to selection (bold+white when selected)
   Widget _seg(String label, int i) {
     final selected = _index == i;
     return AnimatedDefaultTextStyle(

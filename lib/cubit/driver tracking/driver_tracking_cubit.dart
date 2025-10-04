@@ -14,17 +14,10 @@ class DriversTrackingCubit extends Cubit<DriversTrackingState> {
     _sub?.cancel();
     emit(state.copyWith(loading: true, error: null));
 
-    // Use the simple stream first (no orderBy)
     _sub = repo.listenOnlineWithLocation().listen(_onData, onError: _onError);
-
-    // If you want to try the ordered one after creating index:
-    // _sub = repo.listenOnlineWithLocationOrdered().listen(_onData, onError: _onError);
   }
 
   void _onData(List<Driver> drivers) {
-    // Debug: confirm streaming
-    // print(drivers.map((d) => '${d.id}:${d.currentLocation?.latitude},${d.currentLocation?.longitude}').take(3).join(' | '));
-
     final filtered = _filter(drivers, state.query);
     emit(
       state.copyWith(
@@ -52,8 +45,6 @@ class DriversTrackingCubit extends Cubit<DriversTrackingState> {
   }
 
   void _onError(Object e) {
-    // Surface the error so you can see if it’s "FAILED_PRECONDITION: index required" etc.
-    // print('[drivers stream error] $e');
     emit(state.copyWith(loading: false, error: e.toString()));
   }
 

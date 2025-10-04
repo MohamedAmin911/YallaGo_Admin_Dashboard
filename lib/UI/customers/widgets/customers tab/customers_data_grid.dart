@@ -10,7 +10,6 @@ import 'package:yallago_admin_dashboard/cubit/customer/customer_cubit.dart';
 import 'package:yallago_admin_dashboard/cubit/customer/customer_state.dart';
 import 'package:yallago_admin_dashboard/models/customer.dart';
 
-// Column width constants
 const double kWCustomerId = 300;
 const double kWName = 260;
 const double kWEmail = 260;

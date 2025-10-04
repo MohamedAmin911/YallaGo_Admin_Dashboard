@@ -44,7 +44,6 @@ class _DriverReviewSheetState extends State<DriverReviewSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header: Avatar + name + status + copy chips
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -116,7 +115,6 @@ class _DriverReviewSheetState extends State<DriverReviewSheet> {
 
                 const SizedBox(height: 16),
 
-                // Two-column responsive content
                 LayoutBuilder(
                   builder: (context, c) {
                     final tight = c.maxWidth < 700;
